@@ -1,0 +1,11 @@
+groups:
+  - name: discord-test-rules
+    rules:
+      - alert: DiscordTestAlert
+        expr: vector(1)
+        for: 10s
+        labels:
+          severity: warning
+        annotations:
+          summary: "🚨 Alerte test Discord"
+          description: "Ceci est un test pour vérifier l'envoi d'alertes vers Discord via Alertmanager."
