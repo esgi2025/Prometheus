@@ -1,44 +1,32 @@
-version: "3.8"
+version: '3.8'
 
 services:
   prometheus:
     image: prom/prometheus:latest
+    volumes:
+      - /mnt/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - /mnt/prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml
     ports:
       - "9090:9090"
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
     networks:
       - monitoring
+    deploy:
+      mode: replicated
+      replicas: 1
 
   alertmanager:
     image: prom/alertmanager:latest
+    volumes:
+      - /mnt/prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml
     ports:
       - "9093:9093"
-    volumes:
-      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
-    command:
-      - "--config.file=/etc/alertmanager/alertmanager.yml"
+    networks:
+      - monitoring
     deploy:
+      mode: replicated
       replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-    networks:
-      - monitoring
-
-  node-exporter:
-    image: prom/node-exporter:latest
-    deploy:
-      mode: global
-    networks:
-      - monitoring
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
@@ -49,11 +37,27 @@ services:
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
-    deploy:
-      mode: global
     networks:
       - monitoring
+    deploy:
+      mode: global
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+    networks:
+      - monitoring
+    deploy:
+      mode: global
 
 networks:
   monitoring:
-    driver: overlay
