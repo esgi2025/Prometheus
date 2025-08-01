@@ -1,11 +1,50 @@
 groups:
-  - name: discord-test-rules
+  - name: swarm-node-alerts
     rules:
-      - alert: DiscordTestAlert
-        expr: vector(1)
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance injoignable : {{ $labels.instance }}"
+          description: "Le job '{{ $labels.job }}' sur l'instance '{{ $labels.instance }}' est injoignable depuis plus d'une minute."
+
+     - alert: AlwaysFiring
+        expr: up >= 0
         for: 10s
+        labels:
+          severity: info
+        annotations:
+          summary: "Alerte de test permanente"
+          description: "Cette alerte est toujours active pour vérifier l’envoi vers Discord."
+
+      - alert: InstanceDown
+      - alert: HostHighCpuLoad
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 1
+        for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "🚨 Alerte test Discord"
-          description: "Ceci est un test pour vérifier l'envoi d'alertes vers Discord via Alertmanager."
+          summary: "Charge CPU élevée sur le nœud {{ $labels.instance }}"
+          description: "La charge CPU sur le nœud {{ $labels.instance }} est supérieure à 1%."
+
+      - alert: HostHighMemoryLoad
+        expr: 100 - ((node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Utilisation mémoire élevée sur le nœud {{ $labels.instance }}"
+          description: "L'utilisation de la mémoire sur le nœud {{ $labels.instance }} est supérieure à 1%."
+
+      - alert: HostDiskWillFillIn4Hours
+        expr: predict_linear(node_filesystem_free_bytes{mountpoint="/"}[1h], 4 * 3600) < 0
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Le disque du nœud {{ $labels.instance }} sera plein dans moins de 4 heures."
+          description: "Le disque racine sur {{ $labels.instance }} est sur le point d'être saturé."
+
+
